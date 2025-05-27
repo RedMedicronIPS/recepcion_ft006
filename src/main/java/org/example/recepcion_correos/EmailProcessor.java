@@ -1,11 +1,13 @@
 package org.example.recepcion_correos;
 
-import java.io.File;
-import java.io.FileOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Properties;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
-import org.example.recepcion_correos.model.RegistroFT006;
-import org.example.recepcion_correos.service.RegistroService;
+import org.example.recepcion_correos.model.FacturaElectronica;
+import org.example.recepcion_correos.service.FacturaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -20,7 +22,7 @@ import jakarta.mail.internet.MimeMultipart;
 public class EmailProcessor {
 
     @Autowired
-    private RegistroService registroService;
+    private FacturaService facturaService;
 
     @Autowired
     private XmlProcessorApplication xmlProcessorApplication;
@@ -46,22 +48,43 @@ public class EmailProcessor {
                     MimeMultipart multipart = (MimeMultipart) message.getContent();
                     for (int i = 0; i < multipart.getCount(); i++) {
                         BodyPart bodyPart = multipart.getBodyPart(i);
-                        if (bodyPart.getFileName() != null && bodyPart.getFileName().endsWith(".xml")) {
-                            File file = new File("temp.xml");
-                            try (FileOutputStream fos = new FileOutputStream(file)) {
-                                bodyPart.getInputStream().transferTo(fos);
+                        String fileName = bodyPart.getFileName();
+                        if (fileName != null && fileName.endsWith(".zip")) {
+                            Path pdfPath = null;
+                            Path xmlPath = null;
+                            // Procesar ZIP
+                            try (ZipInputStream zis = new ZipInputStream(bodyPart.getInputStream())) {
+                                ZipEntry entry;
+                                while ((entry = zis.getNextEntry()) != null) {
+                                    if (entry.getName().endsWith(".xml")) {
+                                        xmlPath = Files.createTempFile("correo_", ".xml");
+                                        Files.copy(zis, xmlPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                                    } else if (entry.getName().endsWith(".pdf")) {
+                                        Path pdfDir = Path.of("c:/Proyectos/recepcion_correos/pdfs/");
+                                        if (!Files.exists(pdfDir)) {
+                                            Files.createDirectories(pdfDir);
+                                        }
+                                        String pdfFileName = System.currentTimeMillis() + "_" + entry.getName();
+                                        pdfPath = pdfDir.resolve(pdfFileName);
+                                        Files.copy(zis, pdfPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                                    }
+                                    zis.closeEntry();
+                                }
                             }
-                            // Lee el contenido para depuración
-                            String xmlContent = new String(java.nio.file.Files.readAllBytes(file.toPath()));
-                            System.out.println("Contenido XML recibido:\n" + xmlContent);
-                            // Procesa el XML y agrega datos del correo
-                            RegistroFT006 registro = xmlProcessorApplication.processXmlFile(file.getAbsolutePath());
-                            if (registro != null) {
-                                registro.setAsuntoCorreo(message.getSubject());
-                                registro.setRemitenteCorreo(message.getFrom()[0].toString());
-                                registro.setFechaCorreo(message.getSentDate() != null ? message.getSentDate().toString() : "");
-                                registro.setContenidoCorreo(getTextFromMessage(message));
-                                registroService.guardarRegistro(registro);
+                            // Procesar la factura solo si hay XML
+                            if (xmlPath != null) {
+                                FacturaElectronica factura = xmlProcessorApplication.processXmlFile(xmlPath.toString());
+                                if (factura != null) {
+                                    factura.setAsuntoCorreo(message.getSubject());
+                                    factura.setRemitenteCorreo(message.getFrom()[0].toString());
+                                    factura.setFechaCorreo(message.getSentDate() != null ? message.getSentDate().toString() : "");
+                                    factura.setContenidoCorreo(getTextFromMessage(message));
+                                    factura.setXmlPath(xmlPath.toString());
+                                    if (pdfPath != null) {
+                                        factura.setPdfPath(pdfPath.toString());
+                                    }
+                                    facturaService.guardarFactura(factura);
+                                }
                             }
                         }
                     }
