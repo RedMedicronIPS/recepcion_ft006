@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>| 
+    <FT006> 
+        <RegistroFT006> 
+            <lineaNegocio>1</lineaNegocio> 
+            <establecimiento>Banco Davivienda</ establecimiento> 
+            <IdEstablecimiento>8600343137</IdEstablecimiento> 
+            <codigoSIMEV>001-039</codigoSIMEV> 
+            <calificacionRiesgo >AAA</ calificacionRiesgo> 
+            <entidadCalificadora>1</entidadCalificadora> 
+            <otraCalificadora>NA</otraCalificadora> 
+            <clasecuenta>1</clasecuenta> 
+            <tipoMoneda>COP</tipoMoneda> 
+            <idCuenta>1050036070</idCuenta> 
+            <nombreCuenta>NA</nombreCuenta> 
+            <saldoExtracto>560000</saldoExtracto> 
+            <saldoLibros>560000</saldoLibros> 
+            <sobregiro>0</sobregiro> 
+            <rendimientos>0</rendimientos> 
+            <gravamen>0</gravamen> 
+            <estado>1</estado> 
+            <fechaMedida>00000000</fechaMedida> 
+            <valorMedida>0</valorMedida> 
+            <inversionReservas>0</inversionReservas> 
+        </RegistroFT006> 
+    </FT006> 
+
